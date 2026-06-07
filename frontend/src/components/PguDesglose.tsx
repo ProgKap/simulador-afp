@@ -7,84 +7,66 @@ interface Props {
 export function PguDesglose({ resultado }: Props) {
   const { pension_mensual, pension_efectiva, pgu_monto, pgu_suplemento, pgu_elegible } = resultado
 
+  // No aplica — texto simple
+  if (!pgu_elegible) {
+    return (
+      <p style={{ fontSize: "12px", color: "var(--text-light)", padding: "2px 0" }}>
+        PGU no aplica · tu pensión AFP (${pension_mensual.toLocaleString("es-CL")}) supera el umbral de ${pgu_monto.toLocaleString("es-CL")}/mes
+      </p>
+    )
+  }
+
+  // Sí aplica — indicador grande
   return (
     <div style={{
-      background: pgu_elegible ? "#EFF6FF" : "var(--bg-card)",
-      border: pgu_elegible ? "1.5px solid #93C5FD" : "1px solid var(--border)",
-      borderRadius: "var(--r)",
-      padding: "18px 20px",
-      boxShadow: "var(--shadow)",
+      background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)",
+      borderRadius: "var(--r-lg)",
+      padding: "24px 28px",
+      boxShadow: "0 8px 32px rgba(29,78,216,0.25)",
+      color: "white",
     }}>
       {/* Encabezado */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-        <div style={{
-          width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
-          background: pgu_elegible ? "#3B82F6" : "var(--bg-muted)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-            <path d="M8 1L10.5 6H15L11.5 9.5L13 14.5L8 11.5L3 14.5L4.5 9.5L1 6H5.5L8 1Z"
-              fill={pgu_elegible ? "white" : "var(--text-light)"} />
-          </svg>
-        </div>
-        <div>
-          <p style={{ fontSize: "13px", fontWeight: 600, color: pgu_elegible ? "#1D4ED8" : "var(--text)" }}>
-            Pensión Garantizada Universal (PGU)
-          </p>
-          <p style={{ fontSize: "11px", color: pgu_elegible ? "#3B82F6" : "var(--text-muted)" }}>
-            {pgu_elegible
-              ? "El Estado cubre la diferencia hasta el mínimo garantizado"
-              : "Tu pensión supera el umbral — la PGU no aplica"}
-          </p>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M8 1L10.5 6H15L11.5 9.5L13 14.5L8 11.5L3 14.5L4.5 9.5L1 6H5.5L8 1Z" fill="white" fillOpacity="0.9"/>
+        </svg>
+        <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", opacity: 0.75 }}>
+          Pensión Garantizada Universal (PGU)
+        </span>
       </div>
 
-      {/* Desglose suma */}
-      <div style={{
-        background: pgu_elegible ? "white" : "var(--bg-muted)",
-        borderRadius: "var(--r-sm)",
-        padding: "14px 16px",
-        display: "flex", flexDirection: "column", gap: "8px",
-      }}>
-        <SumaRow
-          label="Pensión AFP (cuenta individual)"
-          value={`$${pension_mensual.toLocaleString("es-CL")}`}
-          color="var(--text)"
-        />
-        <SumaRow
-          label={pgu_elegible ? "Suplemento del Estado (PGU)" : "Suplemento Estado (no aplica)"}
-          value={`+$${pgu_suplemento.toLocaleString("es-CL")}`}
-          color={pgu_elegible ? "#2563EB" : "var(--text-light)"}
-        />
-        <div style={{ height: "1px", background: pgu_elegible ? "#BFDBFE" : "var(--border)", margin: "2px 0" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: pgu_elegible ? "#1D4ED8" : "var(--text)" }}>
-            Total mensual
-          </span>
-          <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "16px", fontWeight: 700,
-            color: pgu_elegible ? "#1D4ED8" : "var(--text)",
-          }}>
+      {/* Suma */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+        <SumaLinea label="Pensión AFP (cuenta individual)" value={`$${pension_mensual.toLocaleString("es-CL")}`} />
+        <SumaLinea label="Suplemento del Estado" value={`+ $${pgu_suplemento.toLocaleString("es-CL")}`} highlight />
+        <div style={{ height: "1px", background: "rgba(255,255,255,0.25)", margin: "2px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <span style={{ fontSize: "13px", fontWeight: 600, opacity: 0.9 }}>Total mensual</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "28px", fontWeight: 700 }}>
             ${pension_efectiva.toLocaleString("es-CL")}
           </span>
         </div>
       </div>
 
-      <p style={{ fontSize: "11px", color: pgu_elegible ? "#3B82F6" : "var(--text-light)", marginTop: "10px", lineHeight: 1.5 }}>
-        PGU vigente: <strong>${pgu_monto.toLocaleString("es-CL")}/mes</strong>
-        {pgu_elegible
-          ? " · El Estado garantiza este mínimo. Puede cambiar por reformas legislativas."
-          : " · Tu cuenta individual supera este umbral."}
+      {/* Nota */}
+      <p style={{ fontSize: "11px", opacity: 0.65, lineHeight: 1.5 }}>
+        El Estado garantiza ${pgu_monto.toLocaleString("es-CL")}/mes. Puede cambiar con reformas legislativas — seguir cotizando y aportar APV sigue siendo valioso.
       </p>
     </div>
   )
 }
 
-function SumaRow({ label, value, color }: { label: string; value: string; color: string }) {
+function SumaLinea({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>{label}</span>
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: "13px", fontWeight: 500, color }}>
+      <span style={{ fontSize: "12px", opacity: highlight ? 0.9 : 0.65 }}>{label}</span>
+      <span style={{
+        fontFamily: "var(--font-mono)", fontSize: "14px", fontWeight: 600,
+        opacity: highlight ? 1 : 0.8,
+        background: highlight ? "rgba(255,255,255,0.15)" : "transparent",
+        padding: highlight ? "2px 8px" : "0",
+        borderRadius: "4px",
+      }}>
         {value}
       </span>
     </div>

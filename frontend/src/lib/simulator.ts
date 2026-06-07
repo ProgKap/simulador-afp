@@ -40,7 +40,7 @@ const VOLATILIDAD: Record<string, number> = {
 export const EDAD_JUBILACION: Record<string, number> = { hombre: 65, mujer: 60 }
 const ESPERANZA_VIDA: Record<string, number>         = { hombre: 20, mujer: 27 }
 
-export const PGU_MONTO = 214_296
+export const PGU_MONTO = 214_296  // fallback; passed dynamically via SimulacionParams
 const APV_BONIFICACION_RATE = 0.15
 const APV_BONIFICACION_UTM  = 6
 
@@ -169,7 +169,8 @@ export interface SimulacionParams {
   crecimiento_sueldo?: number
   apv_mensual?:        number
   utm_valor?:          number
-  densidad_cotizacion?: number  // 0-1, default 1.0 (100%). Promedio Chile ~0.72
+  pgu_monto?:          number   // valor legal vigente; default = PGU_MONTO
+  densidad_cotizacion?: number
 }
 
 export function calcularSimulacion(p: SimulacionParams): SimulacionOutput {
@@ -183,6 +184,7 @@ export function calcularSimulacion(p: SimulacionParams): SimulacionOutput {
   const crecimiento     = p.crecimiento_sueldo    ?? 0.02
   const apvMensual      = p.apv_mensual           ?? 0
   const utmValor        = p.utm_valor             ?? 68_306
+  const pguMonto        = p.pgu_monto             ?? PGU_MONTO
   const densidad        = p.densidad_cotizacion   ?? 1.0
 
   const { cotizaciones, costos, apvList } = buildFlujos(
@@ -215,12 +217,13 @@ export function calcularSimulacion(p: SimulacionParams): SimulacionOutput {
   const totalComisiones = Math.round(costos.map(c => c * densidad).reduce((a, b) => a + b, 0))
   const totalCotizacion = Math.round(cotizacionesEfectivas.reduce((a, b) => a + b, 0))
   const totalApv        = Math.round(apvList.reduce((a, b) => a + b, 0))
-  const pguElegible     = pension < PGU_MONTO
+  const pguElegible     = pension < pguMonto
+  const pguSuplemento   = pguElegible ? pguMonto - pension : 0
 
   return {
     saldo_estimado:        saldoFinal,
     pension_mensual:       pension,
-    pension_efectiva:      pguElegible ? PGU_MONTO : pension,
+    pension_efectiva:      pguElegible ? pguMonto : pension,
     pension_pesimista:     Math.floor(mc.p25 / mesesRetiro),
     pension_optimista:     Math.floor(mc.p75 / mesesRetiro),
     pension_p10:           Math.floor(mc.p10 / mesesRetiro),
@@ -234,7 +237,8 @@ export function calcularSimulacion(p: SimulacionParams): SimulacionOutput {
     total_cotizacion:      totalCotizacion,
     total_apv:             totalApv,
     pgu_elegible:          pguElegible,
-    pgu_monto:             PGU_MONTO,
+    pgu_monto:             pguMonto,
+    pgu_suplemento:        pguSuplemento,
     proyeccion_anual:      proyeccion,
     percentiles_saldo:     { p10: mc.p10, p25: mc.p25, p50: mc.p50, p75: mc.p75, p90: mc.p90 },
   }

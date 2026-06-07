@@ -59,6 +59,7 @@ export interface SimulacionOutput {
   total_apv:             number
   pgu_elegible:          boolean
   pgu_monto:             number
+  pgu_suplemento:        number
   proyeccion_anual:      ProyeccionAnual[]
   percentiles_saldo:     PercentilesSaldo
 }
@@ -80,6 +81,7 @@ export interface Indicadores {
   ipc_mensual:    number
   ipc_anual:      number
   salario_minimo: number
+  pgu_monto:      number
   fuente:         "bcch" | "bcch_partial" | "fallback"
 }
 

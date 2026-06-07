@@ -7,11 +7,15 @@ const SERIES = {
   ipc: "F028.LBS.IPC.Z.Z.T.M",
 }
 
+// PGU vigente — actualizar aquí cuando el Gobierno cambie el monto legal
+export const PGU_VIGENTE = 214_296
+
 export const INDICADORES_FALLBACK: Indicadores = {
   utm_valor:      68_306,
   ipc_mensual:    0.003,
   ipc_anual:      0.035,
   salario_minimo: 500_000,
+  pgu_monto:      PGU_VIGENTE,
   fuente:         "fallback",
 }
 
@@ -43,6 +47,7 @@ async function fetchSeries(user: string, pass: string, series: string): Promise<
 }
 
 export async function getIndicadores(user?: string, pass?: string): Promise<Indicadores> {
+  // pgu_monto is always the statutory value — no external API has it
   const result: Indicadores = { ...INDICADORES_FALLBACK }
 
   if (!user || !pass) return result

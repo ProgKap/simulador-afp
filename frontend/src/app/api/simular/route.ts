@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     crecimiento_sueldo: (crecimiento_sueldo as number) ?? 0.02,
     apv_mensual:        (apv_mensual as number) ?? 0,
     utm_valor:          indicadores.utm_valor,
+    pgu_monto:          indicadores.pgu_monto,
   })
 
   return NextResponse.json(resultado)

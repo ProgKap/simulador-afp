@@ -24,6 +24,11 @@ export default function Home() {
     setResultado(r)
     setAfpActual(input.afp)
     setComparador(null)
+    if (typeof window !== "undefined" && window.innerWidth <= 768) {
+      setTimeout(() => {
+        document.getElementById("resultados")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 80)
+    }
     comparar({
       edad:               input.edad,
       sexo:               input.sexo,
@@ -80,12 +85,23 @@ export default function Home() {
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
         input[type=number] { -moz-appearance: textfield; }
 
+        /* ── Mobile ─────────────────────────────────────────── */
         @media (max-width: 768px) {
-          .layout-grid { grid-template-columns: 1fr !important; }
-          .metrics-grid { grid-template-columns: 1fr 1fr !important; }
-          .header-inner { padding: 0 16px !important; }
-          .hero { margin-bottom: 24px !important; }
-          .content-area { padding: 20px 16px !important; }
+          .layout-grid   { grid-template-columns: 1fr !important; }
+          .metrics-grid  { grid-template-columns: 1fr 1fr !important; }
+          .header-inner  { padding: 0 14px !important; }
+          .hero          { margin-bottom: 24px !important; }
+          .content-area  { padding: 20px 14px !important; }
+          .form-panel    { position: static !important; top: unset !important; }
+          .github-link   { display: none !important; }
+        }
+        /* ── Small phones ────────────────────────────────────── */
+        @media (max-width: 480px) {
+          .metrics-grid  { grid-template-columns: 1fr !important; }
+          .header-badge  { display: none !important; }
+          .metric-value  { font-size: 18px !important; }
+          .chart-card    { padding: 16px !important; }
+          .comparator-card { padding: 16px !important; }
         }
       `}</style>
 
@@ -114,7 +130,7 @@ export default function Home() {
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{
+          <div className="header-badge" style={{
             display: "flex", alignItems: "center", gap: "6px",
             background: "var(--accent-pale)", border: "1px solid var(--accent-light)",
             borderRadius: "20px", padding: "4px 12px",
@@ -125,6 +141,7 @@ export default function Home() {
             </span>
           </div>
           <a
+            className="github-link"
             href="https://github.com/martinsilvasal5/afp-simulador"
             target="_blank"
             rel="noopener noreferrer"
@@ -174,7 +191,7 @@ export default function Home() {
           className="layout-grid"
         >
           {/* Formulario */}
-          <div style={{
+          <div className="form-panel" style={{
             background: "var(--bg-card)",
             border: "1px solid var(--border)",
             borderRadius: "var(--r-lg)",
@@ -196,7 +213,7 @@ export default function Home() {
 
           {/* Resultados */}
           {resultado ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div id="resultados" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
               {/* Alerta PGU */}
               {resultado.pgu_elegible && (
@@ -283,7 +300,7 @@ export default function Home() {
               </div>
 
               {/* Gráfico */}
-              <div style={{
+              <div className="chart-card" style={{
                 background: "var(--bg-card)", border: "1px solid var(--border)",
                 borderRadius: "var(--r-lg)", padding: "28px", boxShadow: "var(--shadow)",
               }}>
@@ -318,7 +335,7 @@ export default function Home() {
 
               {/* Comparador de AFPs */}
               {comparador && (
-                <div style={{
+                <div className="comparator-card" style={{
                   background: "var(--bg-card)", border: "1px solid var(--border)",
                   borderRadius: "var(--r-lg)", padding: "28px", boxShadow: "var(--shadow)",
                 }}>
@@ -373,7 +390,7 @@ function MetricCard({ label, value, sub, accent, gold }: {
       }}>
         {label}
       </p>
-      <p style={{
+      <p className="metric-value" style={{
         fontFamily: "var(--font-mono)", fontSize: "22px", fontWeight: 500,
         color: accent || gold ? "white" : "var(--text)",
         marginBottom: "4px", lineHeight: 1,
@@ -468,7 +485,7 @@ function EmptyState() {
   return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", minHeight: "400px",
+      justifyContent: "center", minHeight: "clamp(160px, 30vw, 400px)",
       background: "var(--bg-card)", border: "1px dashed var(--border-dark)",
       borderRadius: "var(--r-lg)", gap: "16px",
     }}>

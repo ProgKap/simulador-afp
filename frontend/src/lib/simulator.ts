@@ -23,13 +23,13 @@ export const AFP_LABELS: Record<string, string> = {
 }
 
 // Rentabilidades REALES (descontada inflación ~3.5% histórica Chile)
-// Fuente: SP Chile serie 2002-2024, ajustadas por IPC promedio
+// Fuente: SP Chile promedio nominal 2002-2024 → real = (1+nom)/(1+0.035)-1
 const RENTABILIDAD: Record<string, number> = {
-  A: 0.036,  // 7.2% nominal - 3.5% inflación
-  B: 0.022,  // 5.8% - 3.5%
-  C: 0.010,  // 4.5% - 3.5%
-  D: 0.001,  // 3.1% - 3.5% ≈ 0 (preservación de capital)
-  E: 0.001,  // 2.3% - 3.5% ≈ 0 (instrumento de bajo riesgo)
+  A: 0.039,  // SP histórico ~7.5% nominal → real 3.9%
+  B: 0.029,  // SP histórico ~6.5% nominal → real 2.9%
+  C: 0.018,  // SP histórico ~5.4% nominal → real 1.8%
+  D: 0.010,  // SP histórico ~4.5% nominal → real 1.0%
+  E: 0.005,  // SP histórico ~4.0% nominal → real 0.5%
 }
 
 // Volatilidad real (igual que nominal en términos relativos)

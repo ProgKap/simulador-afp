@@ -1,0 +1,33 @@
+name: Actualizar datos AFP
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 03:00 AM Chile (UTC-3)
+  workflow_dispatch:
+
+jobs:
+  actualizar:
+    name: Actualizar cuotas y comisiones
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Actualizar cuotas
+        env:
+          QUETALMIAFP_API_KEY: ${{ secrets.QUETALMIAFP_API_KEY }}
+          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:        ${{ secrets.SUPABASE_KEY }}
+        run: python scripts/actualizar_cuotas.py

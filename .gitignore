@@ -1,0 +1,38 @@
+# Credenciales — NUNCA subir a repositorio público
+backend/.env
+frontend/.env.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+backend/venv/
+backend/.venv/
+backend/*.db
+backend/*.sqlite3
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.pnpm-store/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs y herramientas locales
+.vscode/settings.json
+.idea/
+*.swp
+.claude/

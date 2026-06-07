@@ -83,10 +83,3 @@ export interface Indicadores {
   fuente:         "bcch" | "bcch_partial" | "fallback"
 }
 
-export const INDICADORES_FALLBACK: Indicadores = {
-  utm_valor:      68_306,
-  ipc_mensual:    0.003,
-  ipc_anual:      0.035,
-  salario_minimo: 500_000,
-  fuente:         "fallback",
-}

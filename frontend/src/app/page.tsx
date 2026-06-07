@@ -7,7 +7,7 @@ import { ComparativaTable } from "@/components/ComparativaTable"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { comparar, getIndicadores } from "@/lib/api"
 import type { AFP, ComparadorRow, Indicadores, SimulacionInput, SimulacionOutput } from "@/lib/types"
-import { INDICADORES_FALLBACK } from "@/lib/types"
+import { INDICADORES_FALLBACK } from "@/lib/bcch"
 
 export default function Home() {
   const [resultado,    setResultado]    = useState<SimulacionOutput | null>(null)

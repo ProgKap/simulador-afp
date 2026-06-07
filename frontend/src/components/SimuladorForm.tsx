@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { simular } from "@/lib/api"
 import type { AFP, Fondo, Indicadores, Sexo, SimulacionInput, SimulacionOutput } from "@/lib/types"
-import { INDICADORES_FALLBACK } from "@/lib/types"
+import { INDICADORES_FALLBACK } from "@/lib/bcch"
 
 interface Props {
   onResultado: (resultado: SimulacionOutput, input: SimulacionInput) => void

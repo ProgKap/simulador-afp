@@ -1,6 +1,7 @@
 import type { ComparadorInput, ComparadorRow, Indicadores, SimulacionInput, SimulacionOutput } from "./types"
 
-const BASE_URL = process.env.NEXT_PUBLIC_FASTAPI_URL ?? "http://localhost:8000"
+// Rutas relativas — apuntan a los API routes de Next.js (sin backend externo)
+const BASE = ""
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (res.status === 422) {
@@ -17,25 +18,25 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function simular(input: SimulacionInput): Promise<SimulacionOutput> {
-  const res = await fetch(`${BASE_URL}/simular`, {
-    method: "POST",
+  const res = await fetch(`${BASE}/api/simular`, {
+    method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body:    JSON.stringify(input),
   })
   return handleResponse<SimulacionOutput>(res)
 }
 
 export async function comparar(input: ComparadorInput): Promise<ComparadorRow[]> {
-  const res = await fetch(`${BASE_URL}/comparar`, {
-    method: "POST",
+  const res = await fetch(`${BASE}/api/comparar`, {
+    method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body:    JSON.stringify(input),
   })
   const data = await handleResponse<{ filas: ComparadorRow[] }>(res)
   return data.filas
 }
 
 export async function getIndicadores(): Promise<Indicadores> {
-  const res = await fetch(`${BASE_URL}/indicadores`)
+  const res = await fetch(`${BASE}/api/indicadores`)
   return handleResponse<Indicadores>(res)
 }

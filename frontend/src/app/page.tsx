@@ -164,7 +164,7 @@ export default function Home() {
             <em style={{ color: "var(--accent-mid)" }}>recibirás de pensión</em>
           </h1>
           <p style={{ fontSize: "15px", color: "var(--text-muted)", fontWeight: 300, maxWidth: "480px", lineHeight: 1.7 }}>
-            Simulación con rentabilidades históricas reales, Monte Carlo y comisiones vigentes 2026.
+            Proyección previsional con rentabilidades históricas reales, análisis probabilístico y comisiones vigentes 2026.
             Open source — código en GitHub.
           </p>
         </div>
@@ -239,12 +239,12 @@ export default function Home() {
                 <MetricCard
                   label="Escenario pesimista (p25)"
                   value={`$${resultado.pension_p25.toLocaleString("es-CL")}`}
-                  sub="25% de simulaciones Monte Carlo"
+                  sub="Percentil 25 — escenario conservador"
                 />
                 <MetricCard
                   label="Escenario optimista (p75)"
                   value={`$${resultado.pension_p75.toLocaleString("es-CL")}`}
-                  sub="75% de simulaciones Monte Carlo"
+                  sub="Percentil 75 — escenario favorable"
                 />
               </div>
 
@@ -341,7 +341,7 @@ export default function Home() {
 
               {/* Disclaimer */}
               <p style={{ fontSize: "11px", color: "var(--text-light)", lineHeight: 1.6, textAlign: "center" }}>
-                Proyección basada en rentabilidades históricas 2002–2026 · Monte Carlo n=2.000 simulaciones ·
+                Proyección en pesos de hoy (rentabilidades reales, descontada inflación ~3,5%) · Análisis probabilístico con 2.000 escenarios · Se aplica tope imponible DL 3.500 ·
                 No constituye asesoría financiera · Fuente: Superintendencia de Pensiones de Chile
               </p>
             </div>

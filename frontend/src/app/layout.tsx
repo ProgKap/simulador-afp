@@ -4,7 +4,7 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "AFP Simulator Chile — Calcula tu pensión",
   description:
-    "Simulador gratuito y open source de pensión AFP. Calcula tu pensión estimada con rentabilidades históricas reales, Monte Carlo, comparador de AFPs y PGU. Datos vigentes 2026.",
+    "Simulador gratuito y open source de pensión AFP. Calcula tu pensión estimada con rentabilidades históricas reales, análisis probabilístico, comparador de AFPs y PGU. Datos vigentes 2026.",
   keywords: ["AFP", "pensión", "simulador", "Chile", "jubilación", "PGU", "APV", "previsión"],
   authors: [{ name: "AFP Simulator contributors" }],
   openGraph: {

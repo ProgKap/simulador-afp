@@ -22,10 +22,17 @@ export const AFP_LABELS: Record<string, string> = {
   provida:   "AFP ProVida",
 }
 
+// Rentabilidades REALES (descontada inflación ~3.5% histórica Chile)
+// Fuente: SP Chile serie 2002-2024, ajustadas por IPC promedio
 const RENTABILIDAD: Record<string, number> = {
-  A: 0.072, B: 0.058, C: 0.045, D: 0.031, E: 0.023,
+  A: 0.036,  // 7.2% nominal - 3.5% inflación
+  B: 0.022,  // 5.8% - 3.5%
+  C: 0.010,  // 4.5% - 3.5%
+  D: 0.001,  // 3.1% - 3.5% ≈ 0 (preservación de capital)
+  E: 0.001,  // 2.3% - 3.5% ≈ 0 (instrumento de bajo riesgo)
 }
 
+// Volatilidad real (igual que nominal en términos relativos)
 const VOLATILIDAD: Record<string, number> = {
   A: 0.115, B: 0.085, C: 0.055, D: 0.035, E: 0.015,
 }
@@ -35,7 +42,13 @@ const ESPERANZA_VIDA: Record<string, number>         = { hombre: 20, mujer: 27 }
 
 export const PGU_MONTO = 214_296
 const APV_BONIFICACION_RATE = 0.15
-const APV_BONIFICACION_UTM  = 6   // tope = 6 UTM/año de bonificación estatal
+const APV_BONIFICACION_UTM  = 6
+
+// Tope imponible: DL 3.500 Art. 14 — solo se cotiza sobre máximo 82.6 UF/mes
+// Con UF ≈ $37.800 (junio 2026) → $3.122.280/mes
+export const TOPE_IMPONIBLE_UF = 82.6
+export const UF_FALLBACK       = 37_800
+export const TOPE_IMPONIBLE    = Math.round(TOPE_IMPONIBLE_UF * UF_FALLBACK) // ~$3.122.280
 
 // ── Helpers matemáticos ───────────────────────────────────────────────────────
 
@@ -73,6 +86,7 @@ function buildFlujos(
   apvMensual: number,
   anos: number,
   utmValor: number,
+  topeImponible: number = TOPE_IMPONIBLE,
 ): { cotizaciones: number[]; costos: number[]; apvList: number[] } {
   const apvEfectivoAnual = apvEfectivoMensual(apvMensual, utmValor) * 12
   const cotizaciones: number[] = []
@@ -81,8 +95,10 @@ function buildFlujos(
 
   for (let i = 0; i < anos; i++) {
     const s = sueldo * Math.pow(1 + crecimientoSueldo, i)
-    cotizaciones.push(s * 0.10 * 12)
-    costos.push(s * comision * 12)
+    // Tope imponible: DL 3.500 Art. 14 — cotización y comisión solo sobre el tope
+    const sImponible = Math.min(s, topeImponible)
+    cotizaciones.push(sImponible * 0.10 * 12)
+    costos.push(sImponible * comision * 12)
     apvList.push(apvEfectivoAnual)
   }
 
@@ -144,15 +160,16 @@ function monteCarlo(
 // ── API pública ───────────────────────────────────────────────────────────────
 
 export interface SimulacionParams {
-  edad:               number
-  sexo:               string
-  sueldo:             number
-  afp:                string
-  fondo:              string
-  saldo_actual?:      number
+  edad:                number
+  sexo:                string
+  sueldo:              number
+  afp:                 string
+  fondo:               string
+  saldo_actual?:       number
   crecimiento_sueldo?: number
-  apv_mensual?:       number
-  utm_valor?:         number
+  apv_mensual?:        number
+  utm_valor?:          number
+  densidad_cotizacion?: number  // 0-1, default 1.0 (100%). Promedio Chile ~0.72
 }
 
 export function calcularSimulacion(p: SimulacionParams): SimulacionOutput {
@@ -162,37 +179,41 @@ export function calcularSimulacion(p: SimulacionParams): SimulacionOutput {
   const edadJubilacion  = EDAD_JUBILACION[p.sexo]
   const anos            = edadJubilacion - p.edad
   const mesesRetiro     = ESPERANZA_VIDA[p.sexo] * 12
-  const saldoInicial    = p.saldo_actual        ?? 0
-  const crecimiento     = p.crecimiento_sueldo  ?? 0.02
-  const apvMensual      = p.apv_mensual         ?? 0
-  const utmValor        = p.utm_valor           ?? 68_306
+  const saldoInicial    = p.saldo_actual          ?? 0
+  const crecimiento     = p.crecimiento_sueldo    ?? 0.02
+  const apvMensual      = p.apv_mensual           ?? 0
+  const utmValor        = p.utm_valor             ?? 68_306
+  const densidad        = p.densidad_cotizacion   ?? 1.0
 
   const { cotizaciones, costos, apvList } = buildFlujos(
     p.sueldo, crecimiento, comision, apvMensual, anos, utmValor,
   )
 
-  const mc = monteCarlo(saldoInicial, cotizaciones, apvList, rentabilidad, volatilidad)
+  // Aplicar densidad: si cotiza solo el X% de los meses, el aporte efectivo se reduce
+  const cotizacionesEfectivas = cotizaciones.map(c => c * densidad)
+
+  const mc = monteCarlo(saldoInicial, cotizacionesEfectivas, apvList, rentabilidad, volatilidad)
 
   // Proyección determinística año a año
   const proyeccion: ProyeccionAnual[] = []
   let saldo = saldoInicial
   for (let i = 0; i < anos; i++) {
-    saldo = (saldo + cotizaciones[i] + apvList[i]) * (1 + rentabilidad)
+    saldo = (saldo + cotizacionesEfectivas[i] + apvList[i]) * (1 + rentabilidad)
     proyeccion.push({
       ano:                  p.edad + 1 + i,
       saldo:                Math.round(saldo),
       saldo_p25:            mc.bandasP25[i],
       saldo_p75:            mc.bandasP75[i],
-      cotizacion_anual:     Math.round(cotizaciones[i]),
-      costo_comision_anual: Math.round(costos[i]),
+      cotizacion_anual:     Math.round(cotizacionesEfectivas[i]),
+      costo_comision_anual: Math.round(costos[i] * densidad),
       apv_anual:            Math.round(apvList[i]),
     })
   }
 
   const saldoFinal      = proyeccion.at(-1)?.saldo ?? 0
   const pension         = Math.floor(saldoFinal / mesesRetiro)
-  const totalComisiones = Math.round(costos.reduce((a, b) => a + b, 0))
-  const totalCotizacion = Math.round(cotizaciones.reduce((a, b) => a + b, 0))
+  const totalComisiones = Math.round(costos.map(c => c * densidad).reduce((a, b) => a + b, 0))
+  const totalCotizacion = Math.round(cotizacionesEfectivas.reduce((a, b) => a + b, 0))
   const totalApv        = Math.round(apvList.reduce((a, b) => a + b, 0))
   const pguElegible     = pension < PGU_MONTO
 

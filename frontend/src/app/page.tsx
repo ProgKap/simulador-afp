@@ -190,6 +190,36 @@ export default function Home() {
                   />
                 </div>
 
+                {/* Gráfico */}
+                <div className="card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+                    <div>
+                      <h3 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "3px" }}>Evolución del saldo</h3>
+                      <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                        Proyección año a año hasta los {resultado.edad_jubilacion} años · en millones de pesos
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleShare}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "6px",
+                        padding: "6px 12px", borderRadius: "var(--r-sm)",
+                        border: "1px solid var(--border)", background: "var(--bg)",
+                        cursor: "pointer", fontSize: "12px", color: "var(--text-muted)",
+                        transition: "all 0.15s", flexShrink: 0, fontFamily: "var(--font-body)",
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M10 2l4 4-4 4M14 6H6a4 4 0 000 8h1"/>
+                      </svg>
+                      {copied ? "¡Copiado!" : "Compartir"}
+                    </button>
+                  </div>
+                  <ErrorBoundary>
+                    <ProyeccionChart proyeccion={resultado.proyeccion_anual} />
+                  </ErrorBoundary>
+                </div>
+
                 {/* Desglose PGU */}
                 <PguDesglose resultado={resultado} />
 
@@ -225,36 +255,6 @@ export default function Home() {
                       </p>
                     )}
                   </div>
-                </div>
-
-                {/* Gráfico */}
-                <div className="card">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
-                    <div>
-                      <h3 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "3px" }}>Evolución del saldo</h3>
-                      <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                        Proyección año a año hasta los {resultado.edad_jubilacion} años · en millones de pesos
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleShare}
-                      style={{
-                        display: "flex", alignItems: "center", gap: "6px",
-                        padding: "6px 12px", borderRadius: "var(--r-sm)",
-                        border: "1px solid var(--border)", background: "var(--bg)",
-                        cursor: "pointer", fontSize: "12px", color: "var(--text-muted)",
-                        transition: "all 0.15s", flexShrink: 0, fontFamily: "var(--font-body)",
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M10 2l4 4-4 4M14 6H6a4 4 0 000 8h1"/>
-                      </svg>
-                      {copied ? "¡Copiado!" : "Compartir"}
-                    </button>
-                  </div>
-                  <ErrorBoundary>
-                    <ProyeccionChart proyeccion={resultado.proyeccion_anual} />
-                  </ErrorBoundary>
                 </div>
 
                 {/* Comparador de AFPs */}

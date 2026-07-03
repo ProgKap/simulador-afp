@@ -1,7 +1,14 @@
 # AFP Simulator Chile
 
+[![CI/CD Pipeline](https://github.com/ProgKap/simulador-afp/actions/workflows/ci.yml/badge.svg)](https://github.com/ProgKap/simulador-afp/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/downloads/)
+[![Node.js 24](https://img.shields.io/badge/Node.js-24-green)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Simulador open source de pensión AFP para el sistema previsional chileno.  
 Calcula tu pensión estimada con **rentabilidades históricas reales**, **Monte Carlo** (n=2.000 simulaciones), comparador de todas las AFPs, contexto educativo y soporte para APV.
+
+Producción-ready con CI/CD automático, tests completos y seguridad configurada.
 
 ## Demo
 
@@ -30,6 +37,28 @@ Calcula tu pensión estimada con **rentabilidades históricas reales**, **Monte 
 | Cómputo  | NumPy (Monte Carlo), Polars (comparador) |
 | Caché    | In-memory (Redis-ready)          |
 | DB       | SQLAlchemy + Alembic (opcional)  |
+
+## CI/CD Pipeline
+
+Validación automática en cada push con workflows paralelos:
+
+**Frontend (Next.js)**
+- Install dependencies (pnpm)
+- Run tests (Vitest)
+- Production build validation
+
+**Backend (FastAPI)**
+- Install dependencies (pip)
+- Lint code (Ruff)
+- Run tests (Pytest)
+- Validate database migrations (Alembic dry-run)
+
+**Seguridad**
+- Variables de entorno correctamente configuradas
+- Sin credenciales hardcodeadas en repositorio
+- Migrations validadas antes de merge
+
+Ver [`.github/workflows/ci.yml`](.github/workflows/ci.yml) para detalles de configuración.
 
 ## Setup local
 

@@ -11,7 +11,6 @@ from pathlib import Path
 # Agregar directorio padre al path si es necesario
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-
 def log_message(msg: str, level: str = "INFO"):
     """Log con timestamp."""
     ts = datetime.now().isoformat()

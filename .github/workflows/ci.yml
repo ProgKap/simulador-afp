@@ -58,8 +58,8 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: Lint (ruff)
-        run: ruff check --select=E,W,F,I
+      - name: Lint (ruff) — auto-fix
+        run: ruff check --fix --select=E,W,F,I . && ruff check --select=E,W,F,I .
 
       - name: Tests (pytest)
         run: pytest tests/ -v --tb=short

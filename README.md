@@ -42,21 +42,36 @@ Producción-ready con CI/CD automático, tests completos, seguridad configurada 
 | Caché    | In-memory (Redis-ready)          |
 | DB       | SQLAlchemy + Alembic (opcional)  |
 
-## Datos en Vivo
+## Indicadores en Vivo
 
-El simulador obtiene datos económicos **en vivo desde el Banco Central de Chile** mediante su API REST SI3:
+El simulador obtiene **indicadores económicos en vivo desde el Banco Central de Chile** (API SI3), sincronizados diariamente:
 
-| Indicador | Fuente | Frecuencia | Uso |
-|-----------|--------|-----------|-----|
-| **UTM** | BCCH SI3 F047.UTM.IND.N.M | Diaria | Tope de bonificación APV Tipo A |
-| **IPC** | BCCH SI3 F028.LBS.IPC.Z.Z.T.M | Diaria | Indexación inflacionaria |
-| **Comisiones AFP** | Cache local | Manual | Cálculo de costos (fallback si API indisponible) |
+### Principales (Impacto directo en pensión)
 
-**Sincronización automática**: Todos los días a las 06:00 UTC (03:00 AM Chile) vía GitHub Actions.
+| Indicador | Serie BCCH | Uso |
+|-----------|-----------|-----|
+| **UTM** | F047.UTM.IND.N.M | Tope anual bonificación APV Tipo A (6 UTM máx) |
+| **UF** | F047.UF.IND.N.M | Indexación de créditos hipotecarios y fondos |
+| **IPC** | F028.LBS.IPC.Z.Z.T.M | Inflación: revalorización de pensión futura |
+| **Salario Mínimo** | — | Contexto laboral, comparación de pensión |
 
-**Fallback robusto**: Si el Banco Central no está disponible, usa valores de respaldo actualizados (último conocido).
+### Económicos (Contexto & Análisis)
 
-Ver [`.github/workflows/actualizar-datos.yml`](.github/workflows/actualizar-datos.yml) para detalles.
+| Indicador | Serie BCCH | Uso |
+|-----------|-----------|-----|
+| **TPM** | F046.TASA.CB.N.D | Política monetaria: contexto de rentabilidad |
+| **Tipo de Cambio** | F001.TCO.CLP.N.D | Exposición a dólar (inversiones internacionales) |
+| **Tasa Depósitos** | F080.RD.CLP.D.M | Referencia de rentabilidad conservadora |
+| **Desempleo** | F036.SEG.EMP.N.M | Riesgo laboral: probabilidad de inactividad |
+
+### Actualización
+
+- **Frecuencia**: Diaria 06:00 UTC (03:00 AM Chile)
+- **Fuente**: Banco Central de Chile — API REST SI3
+- **Caché**: 24 horas
+- **Fallback**: Valores respaldo si API indisponible
+
+Ver [`.github/workflows/actualizar-datos.yml`](.github/workflows/actualizar-datos.yml) para configuración.
 
 ---
 
@@ -171,40 +186,54 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Fuentes de Datos
 
-### Banco Central de Chile (BCCH)
+### Banco Central de Chile (BCCH) — Sincronización Diaria
 
-El backend sincroniza **diariamente** indicadores económicos desde la [API REST del BCCH](https://si3.bcentral.cl):
+El backend obtiene **7 indicadores en vivo** desde [API SI3 del BCCH](https://si3.bcentral.cl):
 
 ```
-Series SI3:
-├─ F047.UTM.IND.N.M       → UTM mensual (límite APV)
-├─ F028.LBS.IPC.Z.Z.T.M   → IPC mensual (inflación)
-└─ Salario mínimo vigente → Contexto salarial
+Series SI3 (sincronización 06:00 UTC):
+├─ F047.UTM.IND.N.M        → UTM mensual (CLP)
+├─ F047.UF.IND.N.M         → UF mensual (CLP)
+├─ F028.LBS.IPC.Z.Z.T.M    → IPC mensual (%)
+├─ F046.TASA.CB.N.D        → TPM (% anual)
+├─ F001.TCO.CLP.N.D        → Tipo cambio (CLP/USD)
+├─ F080.RD.CLP.D.M         → Tasa depósitos (%)
+└─ F036.SEG.EMP.N.M        → Tasa desempleo (%)
 ```
 
-**Fallback robusto**: Si BCCH no está disponible, el simulador usa el último valor conocido (actualizado mensualmente en el código).
+**Fallback automático**: Si BCCH no responde, usa últimos valores conocidos (conservadores, actualizados mensualmente).
 
 **Registrarse en BCCH**:
 1. Ve a [si3.bcentral.cl](https://si3.bcentral.cl)
 2. Crea una cuenta
 3. Activa "Acceso a Servicios Web" en tu perfil
-4. Usa tus credenciales en `BCCH_USER` y `BCCH_PASS`
+4. Configura `BCCH_USER` y `BCCH_PASS` en GitHub Secrets
 
-### Datos Internos
+### Datos Internos (Históricos)
 
-| Dato | Fuente | Actualización |
-|------|--------|----------------|
-| Rentabilidades históricas (1985-2026) | Superintendencia de Pensiones | Manual (cambios anuales) |
-| Comisiones AFP vigentes | Cache local | Manual o API (cuando esté disponible) |
-| Tablas de mortalidad | RV-2014 CMF Chile | Fijo (legal, cambios cada 5 años) |
-| PGU (Pensión Garantizada) | Ley 21.419 | Anual (BCCH indexa) |
+| Dato | Fuente | Actualización | Notas |
+|------|--------|---------------|-------|
+| Rentabilidades históricas | Superintendencia de Pensiones | Anual | 1985–2026, por fondo (A/B/C/D/E) |
+| Comisiones AFP vigentes | Cache local | Manual | 7 AFPs, comisión fija + variable |
+| Tablas mortalidad | RV-2014 CMF | Fijo | Legal, próxima revisión 2029 |
+| PGU (Pensión Garantizada) | Ley 21.419 | Anual | Indexada por BCCH (IPC) |
+| Salario mínimo | Ley 21.625 | Anual | Vigente desde cada julio |
 
 ### Notas Técnicas
 
-**APV Tipo A — fórmula correcta**:
-- Tope de 6 UTM es la *bonificación anual del Estado*, no el máximo de aporte
-- Máximo aporte para bonificación completa: 40 UTM/año (~$2,73M)
-- Fórmula: `bonificacion = min(apv_anual × 15%, 6 UTM)`
+**APV Tipo A — Bonificación correcta**:
+- Tope de **6 UTM** = bonificación anual del Estado (máximo, no aporte)
+- Máximo aporte elegible: **40 UTM/año** (~$2,73M en 2026)
+- Fórmula: `bonificacion_estado = min(aporte_mensual × 12 × 15%, 6_UTM_anual)`
+
+**Rentabilidad real vs nominal**:
+- Simulador usa **rentabilidades reales históricas** (descontada inflación)
+- Proyección: multiplica por (1 + rentabilidad real) × (1 + inflación esperada)
+- Proyección conservadora: inflación 2.5–3.5% anual
+
+**UF en créditos hipotecarios**:
+- Importante para ahorro-pensión con inversión inmobiliaria
+- Fluctúa según IPC (correlación 1:1)
 
 ## Fuentes de datos
 

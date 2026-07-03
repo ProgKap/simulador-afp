@@ -85,11 +85,37 @@ async def comisiones(request: Request):
 @limiter.limit("30/minute")
 async def indicadores(request: Request):
     """
-    Retorna UTM, IPC y salario mínimo vigentes.
-    Refresca desde el Banco Central de Chile si el caché está vencido (>24 h).
+    Indicadores económicos en vivo desde Banco Central de Chile.
+
+    Retorna:
+    - UTM: Unidad Tributaria Mensual
+    - UF: Unidad de Fomento
+    - IPC: Inflación mensual y anual
+    - TPM: Tasa de Política Monetaria
+    - TCO: Tipo de cambio USD/CLP
+    - Tasas de depósito: Referencia de rentabilidad
+    - Desempleo: Contexto laboral
+
+    Refresca automáticamente si caché vencido (>24h).
+    Usa fallback si BCCH no disponible.
     """
     if is_cache_stale():
         data = await refresh_indicadores(settings.BCCH_USER, settings.BCCH_PASS)
     else:
         data = get_cached_indicadores()
-    return data
+
+    return {
+        "utm": data.get("utm_valor"),
+        "uf": data.get("uf_valor"),
+        "ipc": {
+            "mensual": data.get("ipc_mensual"),
+            "anual": data.get("ipc_anual"),
+        },
+        "tpm": data.get("tpm"),
+        "tco_usd": data.get("tco_usd"),
+        "tasa_deposito_clp": data.get("tasa_deposito_clp"),
+        "desempleo": data.get("desempleo"),
+        "salario_minimo": data.get("salario_minimo"),
+        "fuente": data.get("fuente"),
+        "timestamp": data.get("timestamp"),
+    }

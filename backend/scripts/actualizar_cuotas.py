@@ -27,7 +27,7 @@ def log_message(message: str, level: str = "INFO"):
 
 def fetch_comisiones_from_api() -> dict | None:
     """
-    Obtiene comisiones actualizadas desde API quetalmiafp.
+    Obtiene comisiones actualizadas desde quetalmiafp.cl API.
     Retorna dict con comisiones o None si falla.
     """
     if not API_KEY:
@@ -35,27 +35,30 @@ def fetch_comisiones_from_api() -> dict | None:
         return None
 
     try:
-        log_message("Conectando a quetalmiafp...")
+        log_message("Conectando a quetalmiafp.cl...")
+        import asyncio
+
         async def fetch():
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
                 response = await client.get(
-                    "https://api.quetalmiafp.com/comisiones",
-                    headers={"Authorization": f"Bearer {API_KEY}"},
+                    "https://www.quetalmiafp.cl/AccederCuotas",
+                    headers={
+                        "Authorization": f"Bearer {API_KEY}",
+                        "User-Agent": "AFP-Simulator/1.0",
+                    },
                 )
                 response.raise_for_status()
                 return response.json()
 
-        # Ejecutar async
-        import asyncio
         data = asyncio.run(fetch())
-        log_message(f"✓ Comisiones obtenidas: {len(data)} AFPs")
+        log_message(f"✓ Comisiones obtenidas: {len(data)} registros")
         return data
 
     except httpx.HTTPStatusError as e:
-        log_message(f"Error HTTP {e.response.status_code}: {e.response.text}", "ERROR")
+        log_message(f"Error HTTP {e.response.status_code}", "ERROR")
         return None
     except Exception as e:
-        log_message(f"Error al conectar API: {str(e)}", "ERROR")
+        log_message(f"Error conectando a API: {str(e)}", "ERROR")
         return None
 
 
@@ -114,6 +117,19 @@ def save_to_supabase(data: dict) -> bool:
         return False
 
 
+def load_cached_comisiones() -> dict | None:
+    """Carga comisiones del cache local."""
+    try:
+        if CACHE_FILE.exists():
+            with open(CACHE_FILE) as f:
+                cached = json.load(f)
+                log_message(f"✓ Cache cargado (actualizado: {cached.get('timestamp')})")
+                return cached.get("data")
+    except Exception as e:
+        log_message(f"No se pudo cargar cache: {str(e)}", "WARNING")
+    return None
+
+
 def main():
     """Ejecuta actualización de comisiones."""
     log_message("=" * 60)
@@ -124,9 +140,14 @@ def main():
     comisiones = fetch_comisiones_from_api()
 
     if not comisiones:
-        log_message("No se pudieron obtener comisiones desde API", "ERROR")
-        log_message("Usando cache anterior si existe...")
-        return 1
+        log_message("No se pudieron obtener comisiones desde API", "WARNING")
+        cached = load_cached_comisiones()
+        if cached:
+            log_message("Usando cache anterior", "INFO")
+            comisiones = cached
+        else:
+            log_message("Sin cache disponible - workflow fallido", "ERROR")
+            return 1
 
     # Guardar en cache local
     save_to_cache(comisiones)

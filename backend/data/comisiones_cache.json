@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-07-03T00:00:00",
+  "data": {
+    "uno": {
+      "comision_fija": 1.44,
+      "comision_variable": 0.78,
+      "flujo": 0.0
+    },
+    "modelo": {
+      "comision_fija": 0.77,
+      "comision_variable": 0.54,
+      "flujo": 0.0
+    },
+    "planvital": {
+      "comision_fija": 1.07,
+      "comision_variable": 0.6,
+      "flujo": 0.0
+    },
+    "habitat": {
+      "comision_fija": 0.69,
+      "comision_variable": 0.50,
+      "flujo": 0.0
+    },
+    "capital": {
+      "comision_fija": 1.19,
+      "comision_variable": 0.95,
+      "flujo": 0.0
+    },
+    "cuprum": {
+      "comision_fija": 0.77,
+      "comision_variable": 0.5,
+      "flujo": 0.0
+    },
+    "provida": {
+      "comision_fija": 1.06,
+      "comision_variable": 0.75,
+      "flujo": 0.0
+    }
+  }
+}

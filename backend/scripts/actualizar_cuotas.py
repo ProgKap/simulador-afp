@@ -31,34 +31,49 @@ def fetch_comisiones_from_api() -> dict | None:
     Retorna dict con comisiones o None si falla.
     """
     if not API_KEY:
-        log_message("QUETALMIAFP_API_KEY no configurada", "WARNING")
+        log_message("QUETALMIAFP_API_KEY no configurada (opcional)", "INFO")
         return None
 
     try:
-        log_message("Conectando a quetalmiafp.cl...")
+        log_message("Intentando conectar a quetalmiafp.cl...")
         import asyncio
 
         async def fetch():
             async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+                # Intentar con diferentes métodos de autenticación
+                headers = {
+                    "User-Agent": "AFP-Simulator/1.0",
+                    "Accept": "application/json",
+                }
+
+                # Probar como Bearer token
+                headers["Authorization"] = f"Bearer {API_KEY}"
+
                 response = await client.get(
                     "https://www.quetalmiafp.cl/AccederCuotas",
-                    headers={
-                        "Authorization": f"Bearer {API_KEY}",
-                        "User-Agent": "AFP-Simulator/1.0",
-                    },
+                    headers=headers,
                 )
-                response.raise_for_status()
-                return response.json()
+
+                if response.status_code == 200:
+                    try:
+                        return response.json()
+                    except:
+                        log_message(f"Respuesta no es JSON: {response.text[:100]}", "WARNING")
+                        return None
+                else:
+                    log_message(f"HTTP {response.status_code}: {response.text[:100]}", "WARNING")
+                    return None
 
         data = asyncio.run(fetch())
-        log_message(f"✓ Comisiones obtenidas: {len(data)} registros")
-        return data
+        if data:
+            log_message(f"✓ Comisiones obtenidas desde API")
+            return data
+        else:
+            log_message("API no retornó datos válidos", "WARNING")
+            return None
 
-    except httpx.HTTPStatusError as e:
-        log_message(f"Error HTTP {e.response.status_code}", "ERROR")
-        return None
     except Exception as e:
-        log_message(f"Error conectando a API: {str(e)}", "ERROR")
+        log_message(f"Error conectando a API: {str(e)}", "WARNING")
         return None
 
 

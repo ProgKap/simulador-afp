@@ -6,72 +6,100 @@
 [![Node.js 24](https://img.shields.io/badge/Node.js-24-green)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Simulador open source de pensión AFP para el sistema previsional chileno.
+**Motor de simulación de pensión AFP con datos en vivo desde el Banco Central de Chile.**
 
-Calcula tu pensión estimada con **rentabilidades históricas reales**, **Monte Carlo** (n=2.000 simulaciones), comparador de todas las AFPs, contexto educativo y soporte para APV.
+Simulador open source para proyectar tu pensión en el sistema previsional chileno. Utiliza **rentabilidades históricas reales** (1985–2026), **simulación Monte Carlo** (n=2.000) para análisis de riesgo, y **comparador de las 7 AFPs** con análisis de comisiones en toda tu vida laboral.
 
-**Datos en vivo desde Banco Central de Chile** — UTM, IPC y salario mínimo actualizados diariamente.
+### Características Clave
 
-Producción-ready con CI/CD automático, tests completos, seguridad configurada y datos sincronizados diariamente.
+- **Simulación precisa**: 10% de cotización va íntegro a la cuenta (corrige simuladores que descuentan comisión del saldo)
+- **Monte Carlo n=2.000**: Percentiles p10/p25/p50/p75/p90 con volatilidad histórica real por fondo
+- **Indicadores económicos en vivo**: UTM, UF, IPC, TPM, tipo de cambio desde BCCH (sincronización diaria)
+- **PGU automática**: Detecta si tu pensión está bajo la Pensión Garantizada Universal ($214.296/mes) y lo explica
+- **APV Tipo A**: Simula impacto del ahorro previsional voluntario con bonificación fiscal del 15%
+- **Comparador de AFPs**: Total de comisiones pagadas en toda tu vida laboral para cada AFP
+- **Análisis de contexto**: Tasa de reemplazo, comparación con sueldo mínimo/promedio, alertas
+- **Responsive**: Optimizado para escritorio y móvil
+- **Production-ready**: CI/CD automático, tests completos, seguridad configurada
 
-## Demo
+## Acceso
 
-> Despliega en Vercel o corre localmente — ver instrucciones abajo.
+> **Demo online**: [https://simulador-afp.vercel.app](https://simulador-afp.vercel.app)  
+> **Corre localmente**: Ver [instrucciones de setup](#setup-local)
 
-## Características
 
-- **Simulación precisa**: el 10% de cotización va íntegro a la cuenta (corrección sobre simuladores que descuentan la comisión del saldo)
-- **Monte Carlo n=2.000**: percentiles p10/p25/p50/p75/p90 con volatilidad histórica real por fondo
-- **Banda de confianza** en el gráfico de proyección (rango p25–p75 año a año)
-- **PGU automática**: detecta si tu pensión proyectada está bajo la Pensión Garantizada Universal ($214.296/mes) y lo explica
-- **APV Tipo A**: simula el impacto del ahorro previsional voluntario con bonificación fiscal del 15%
-- **Comparador de AFPs**: muestra el total de comisiones pagadas en toda tu vida laboral para las 7 AFPs
-- **Contexto educativo**: tasa de reemplazo, comparación con sueldo mínimo/promedio, alerta si es insuficiente
-- **Permalink**: copia un link con tu simulación para compartir
-- **Sexo correcto**: hombres jubilan a 65, mujeres a 60 (tablas de mortalidad RV-2014 CMF Chile)
-- **SEO y OG tags** listos para producción
-- **Responsive** para móvil
+## Stack Técnico
 
-## Stack
+| Capa | Tecnología | Justificación |
+|------|-----------|---------------|
+| **Frontend** | Next.js 16, React 19, TypeScript | SSR para SEO, performance optimizado, componentes reutilizables |
+| **Visualización** | Recharts | Gráficos interactivos, responsive, accesible |
+| **Backend** | FastAPI, Pydantic v2 | Async nativo, validación automática, documentación auto-generada (Swagger) |
+| **Cálculos** | NumPy, Polars | Monte Carlo eficiente, análisis vectorizado, comparaciones rápidas |
+| **Datos económicos** | BCCH SI3 API REST | Datos oficiales en vivo, actualización automática diaria |
+| **Persistencia** | SQLAlchemy + Alembic | ORM tipado, migraciones versionadas, soporte PostgreSQL/SQLite |
+| **Testing** | Pytest (backend), Vitest (frontend) | Cobertura automática, ejecución en CI/CD |
+| **Linting** | Ruff (Python), ESLint (TypeScript) | Código consistente, detección temprana de errores |
+| **CI/CD** | GitHub Actions | Workflows paralelos, validaciones en cada push, sincronización automática |
 
-| Capa     | Tecnología                       |
-|----------|----------------------------------|
-| Frontend | Next.js 16, React 19, Recharts   |
-| Backend  | FastAPI, Pydantic v2             |
-| Cómputo  | NumPy (Monte Carlo), Polars (comparador) |
-| Caché    | In-memory (Redis-ready)          |
-| DB       | SQLAlchemy + Alembic (opcional)  |
+## Datos Económicos en Vivo
 
-## Indicadores en Vivo
+El simulador **sincroniza diariamente** indicadores del Banco Central de Chile. Esta arquitectura garantiza:
 
-El simulador obtiene **indicadores económicos en vivo desde el Banco Central de Chile** (API SI3), sincronizados diariamente:
+- ✅ **Precisión**: Datos oficiales, no estimaciones
+- ✅ **Actualización automática**: Sin intervención manual
+- ✅ **Resiliencia**: Fallback automático si BCCH no disponible
+- ✅ **Legal**: Datos públicos con autorización explícita de BCCH
 
-### Principales (Impacto directo en pensión)
+### Indicadores Sincronizados
 
-| Indicador | Serie BCCH | Uso |
-|-----------|-----------|-----|
-| **UTM** | F047.UTM.IND.N.M | Tope anual bonificación APV Tipo A (6 UTM máx) |
-| **UF** | F047.UF.IND.N.M | Indexación de créditos hipotecarios y fondos |
-| **IPC** | F028.LBS.IPC.Z.Z.T.M | Inflación: revalorización de pensión futura |
-| **Salario Mínimo** | — | Contexto laboral, comparación de pensión |
+| Indicador | Serie BCCH | Tipo | Impacto en simulación |
+|-----------|-----------|------|----------------------|
+| **UTM** | F047.UTM.IND.N.M | Tributario | Tope bonificación APV Tipo A (6 UTM máx/año) |
+| **UF** | F047.UF.IND.N.M | Indexación | Revalorización de fondos e hipotecas |
+| **IPC** | F028.LBS.IPC.Z.Z.T.M | Inflación | Deflactación de pensión futura a pesos reales |
+| **TPM** | F046.TASA.CB.N.D | Política monetaria | Contexto de tasa de interés real esperada |
+| **TCO** | F001.TCO.CLP.N.D | Cambio | Exposición a USD (fondos con inversión externa) |
+| **Tasa Depósitos** | F080.RD.CLP.D.M | Rentabilidad | Benchmark conservador de rentabilidad |
+| **Desempleo** | F036.SEG.EMP.N.M | Laboral | Riesgo de inactividad / brecha de aportes |
 
-### Económicos (Contexto & Análisis)
+### Comisiones AFP
 
-| Indicador | Serie BCCH | Uso |
-|-----------|-----------|-----|
-| **TPM** | F046.TASA.CB.N.D | Política monetaria: contexto de rentabilidad |
-| **Tipo de Cambio** | F001.TCO.CLP.N.D | Exposición a dólar (inversiones internacionales) |
-| **Tasa Depósitos** | F080.RD.CLP.D.M | Referencia de rentabilidad conservadora |
-| **Desempleo** | F036.SEG.EMP.N.M | Riesgo laboral: probabilidad de inactividad |
+**Actualización manual mensual** (legal y profesional)
 
-### Actualización
+Las comisiones de AFP son independientes de datos macroeconómicos. Se actualizan mensualmente verificando sitios oficiales de cada AFP:
+- **Comisión fija**: % del sueldo (por AFP)
+- **Comisión variable**: % de las ganancias
 
-- **Frecuencia**: Diaria 06:00 UTC (03:00 AM Chile)
-- **Fuente**: Banco Central de Chile — API REST SI3
-- **Caché**: 24 horas
-- **Fallback**: Valores respaldo si API indisponible
+Esto garantiza:
+- ✅ **Legalidad**: No depende de APIs privadas (respeta ToS)
+- ✅ **Precisión**: Verificación manual en fuentes oficiales
+- ✅ **Responsabilidad**: Tu actualización = tus datos garantizados precisos
 
-Ver [`.github/workflows/actualizar-datos.yml`](.github/workflows/actualizar-datos.yml) para configuración.
+**Archivo**: [`backend/data/comisiones_cache.json`](backend/data/comisiones_cache.json)  
+**Frecuencia**: 1x mes (primer día hábil)
+
+### Arquitectura de Datos
+
+```
+Banco Central (diariamente 06:00 UTC)
+    ↓
+refresh_indicadores.py → obtiene 7 series en paralelo
+    ↓
+Cache en memoria (24 horas)
+    ↓
+Fallback automático si BCCH no disponible
+    ↓
+API /indicadores disponible para simulador
+
+Comisiones AFP (manual, 1x mes)
+    ↓
+comisiones_cache.json → verificado en sitios oficiales
+    ↓
+API /comisiones disponible para simulador
+```
+
+Ver [`.github/workflows/actualizar-datos.yml`](.github/workflows/actualizar-datos.yml) para configuración de sincronización automática.
 
 ---
 

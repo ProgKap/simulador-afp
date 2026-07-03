@@ -1,14 +1,18 @@
 # AFP Simulator Chile
 
 [![CI/CD Pipeline](https://github.com/ProgKap/simulador-afp/actions/workflows/ci.yml/badge.svg)](https://github.com/ProgKap/simulador-afp/actions/workflows/ci.yml)
+[![Daily Data Sync](https://github.com/ProgKap/simulador-afp/actions/workflows/actualizar-datos.yml/badge.svg)](https://github.com/ProgKap/simulador-afp/actions/workflows/actualizar-datos.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![Node.js 24](https://img.shields.io/badge/Node.js-24-green)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Simulador open source de pensión AFP para el sistema previsional chileno.  
+Simulador open source de pensión AFP para el sistema previsional chileno.
+
 Calcula tu pensión estimada con **rentabilidades históricas reales**, **Monte Carlo** (n=2.000 simulaciones), comparador de todas las AFPs, contexto educativo y soporte para APV.
 
-Producción-ready con CI/CD automático, tests completos y seguridad configurada.
+**Datos en vivo desde Banco Central de Chile** — UTM, IPC y salario mínimo actualizados diariamente.
+
+Producción-ready con CI/CD automático, tests completos, seguridad configurada y datos sincronizados diariamente.
 
 ## Demo
 
@@ -38,27 +42,40 @@ Producción-ready con CI/CD automático, tests completos y seguridad configurada
 | Caché    | In-memory (Redis-ready)          |
 | DB       | SQLAlchemy + Alembic (opcional)  |
 
+## Datos en Vivo
+
+El simulador obtiene datos económicos **en vivo desde el Banco Central de Chile** mediante su API REST SI3:
+
+| Indicador | Fuente | Frecuencia | Uso |
+|-----------|--------|-----------|-----|
+| **UTM** | BCCH SI3 F047.UTM.IND.N.M | Diaria | Tope de bonificación APV Tipo A |
+| **IPC** | BCCH SI3 F028.LBS.IPC.Z.Z.T.M | Diaria | Indexación inflacionaria |
+| **Comisiones AFP** | Cache local | Manual | Cálculo de costos (fallback si API indisponible) |
+
+**Sincronización automática**: Todos los días a las 06:00 UTC (03:00 AM Chile) vía GitHub Actions.
+
+**Fallback robusto**: Si el Banco Central no está disponible, usa valores de respaldo actualizados (último conocido).
+
+Ver [`.github/workflows/actualizar-datos.yml`](.github/workflows/actualizar-datos.yml) para detalles.
+
+---
+
 ## CI/CD Pipeline
 
-Validación automática en cada push con workflows paralelos:
+Validación automática en cada push + sincronización diaria de datos:
 
-**Frontend (Next.js)**
-- Install dependencies (pnpm)
-- Run tests (Vitest)
-- Production build validation
+### Validación (Pull Requests)
+- **Frontend**: install → test (Vitest) → build (Next.js)
+- **Backend**: install → lint (Ruff) → test (Pytest) → migrate (Alembic)
 
-**Backend (FastAPI)**
-- Install dependencies (pip)
-- Lint code (Ruff)
-- Run tests (Pytest)
-- Validate database migrations (Alembic dry-run)
+### Sincronización de Datos (Diaria 06:00 UTC)
+- Refrescar indicadores desde Banco Central
+- Actualizar cache de comisiones
+- Validar estado de base de datos
 
-**Seguridad**
-- Variables de entorno correctamente configuradas
-- Sin credenciales hardcodeadas en repositorio
-- Migrations validadas antes de merge
+Todos los workflows son **paralelos** y se ejecutan en ~45 segundos.
 
-Ver [`.github/workflows/ci.yml`](.github/workflows/ci.yml) para detalles de configuración.
+Ver workflows en [`.github/workflows/`](.github/workflows/) para detalles técnicos.
 
 ## Setup local
 
@@ -73,6 +90,7 @@ Ver [`.github/workflows/ci.yml`](.github/workflows/ci.yml) para detalles de conf
 ```bash
 cd backend
 python -m venv venv
+
 # Windows
 venv\Scripts\activate
 # macOS/Linux
@@ -82,11 +100,23 @@ pip install -r requirements.txt
 
 # Copia el .env de ejemplo
 cp ../.env.example .env
-# Edita .env si necesitas integraciones externas (opcional para uso básico)
+```
 
+**Configurar credenciales del Banco Central** (opcional para desarrollo local):
+
+```bash
+# Edita .env
+BCCH_USER=tu_usuario
+BCCH_PASS=tu_password
+```
+
+> Registrate en [si3.bcentral.cl](https://si3.bcentral.cl) para obtener credenciales. Sin estas, el simulador usa valores de respaldo.
+
+```bash
+# Inicia servidor
 uvicorn main:app --reload
 # API disponible en http://localhost:8000
-# Docs en http://localhost:8000/docs
+# Docs interactivos en http://localhost:8000/docs (Swagger)
 ```
 
 ### Frontend
@@ -139,21 +169,42 @@ Ver [`.env.example`](.env.example). Todas son opcionales para uso básico local.
 
 Ver [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Integración Banco Central de Chile
+## Fuentes de Datos
 
-El endpoint `/indicadores` obtiene datos macro directamente desde la [API REST del BCCH](https://si3.bcentral.cl/SieteRestWS/SieteRestWS.ashx):
+### Banco Central de Chile (BCCH)
 
-| Variable        | Serie BCCH              | Uso en el simulador                         |
-|-----------------|-------------------------|---------------------------------------------|
-| UTM mensual     | `F047.UTM.IND.N.M`      | Límite de bonificación APV Tipo A (6 UTM/año) |
-| IPC mensual     | `F028.LBS.IPC.Z.Z.T.M`  | Contexto inflacionario                      |
-| Salario mínimo  | —                       | Comparación de pensión vs sueldo mínimo     |
+El backend sincroniza **diariamente** indicadores económicos desde la [API REST del BCCH](https://si3.bcentral.cl):
 
-**Comportamiento con fallback**: si el API BCCH no está disponible (error de red, cuenta no activada, etc.), el simulador usa valores actualizados hardcodeados y continúa funcionando normalmente. El frontend indica si los datos provienen de BCCH en vivo o del fallback.
+```
+Series SI3:
+├─ F047.UTM.IND.N.M       → UTM mensual (límite APV)
+├─ F028.LBS.IPC.Z.Z.T.M   → IPC mensual (inflación)
+└─ Salario mínimo vigente → Contexto salarial
+```
 
-**Activar cuenta BCCH**: regístrate en [si3.bcentral.cl](https://si3.bcentral.cl) y activa el acceso a servicios web en el perfil de tu cuenta.
+**Fallback robusto**: Si BCCH no está disponible, el simulador usa el último valor conocido (actualizado mensualmente en el código).
 
-**APV Tipo A — corrección técnica**: el tope de 6 UTM es el máximo de *bonificación anual del Estado*, no el máximo de aporte. El aporte máximo para recibir la bonificación completa es 40 UTM/año (~$2,73M). La fórmula correcta es `bonificacion = min(apv_anual × 15%, 6 UTM)`.
+**Registrarse en BCCH**:
+1. Ve a [si3.bcentral.cl](https://si3.bcentral.cl)
+2. Crea una cuenta
+3. Activa "Acceso a Servicios Web" en tu perfil
+4. Usa tus credenciales en `BCCH_USER` y `BCCH_PASS`
+
+### Datos Internos
+
+| Dato | Fuente | Actualización |
+|------|--------|----------------|
+| Rentabilidades históricas (1985-2026) | Superintendencia de Pensiones | Manual (cambios anuales) |
+| Comisiones AFP vigentes | Cache local | Manual o API (cuando esté disponible) |
+| Tablas de mortalidad | RV-2014 CMF Chile | Fijo (legal, cambios cada 5 años) |
+| PGU (Pensión Garantizada) | Ley 21.419 | Anual (BCCH indexa) |
+
+### Notas Técnicas
+
+**APV Tipo A — fórmula correcta**:
+- Tope de 6 UTM es la *bonificación anual del Estado*, no el máximo de aporte
+- Máximo aporte para bonificación completa: 40 UTM/año (~$2,73M)
+- Fórmula: `bonificacion = min(apv_anual × 15%, 6 UTM)`
 
 ## Fuentes de datos
 

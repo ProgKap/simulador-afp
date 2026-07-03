@@ -6,65 +6,82 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # ─────────────────────────────────────────────────────────────────
+  # Frontend: Next.js + React + TypeScript
+  # ─────────────────────────────────────────────────────────────────
   frontend:
-    name: Frontend — lint → test → build
+    name: "Frontend │ test → build"
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - name: "Setup pnpm"
+        uses: pnpm/action-setup@v4
         with:
           version: latest
 
-      - uses: actions/setup-node@v4
+      - name: "Setup Node.js 24"
+        uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      - name: Instalar dependencias
+      - name: "Install dependencies"
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Tests (Vitest)
+      - name: "Run tests (Vitest)"
         run: pnpm vitest run
 
-      - name: Build
+      - name: "Build Next.js"
         run: pnpm build
         env:
           BCCH_USER: ""
           BCCH_PASS: ""
 
+  # ─────────────────────────────────────────────────────────────────
+  # Backend: FastAPI + Python 3.11
+  # ─────────────────────────────────────────────────────────────────
   backend:
-    name: Backend — lint → test → migration check
+    name: "Backend │ lint → test → migrations"
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@v4
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: "Setup Python 3.11"
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
-      - name: Instalar dependencias
+      - name: "Install dependencies"
         run: pip install -r requirements.txt
 
-      - name: Lint (ruff) — auto-fix
-        run: ruff check --fix --select=E,W,F,I --ignore=E501 app/ main.py tests/ && ruff check --select=E,W,F,I --ignore=E501 app/ main.py tests/
+      - name: "Lint code (Ruff)"
+        run: |
+          ruff check --fix --select=E,W,F,I --ignore=E501 app/ main.py tests/
+          ruff check --select=E,W,F,I --ignore=E501 app/ main.py tests/
 
-      - name: Tests (pytest)
+      - name: "Run tests (Pytest)"
         run: pytest tests/ -v --tb=short
 
-      - name: Validar migrations (dry-run)
+      - name: "Validate migrations (dry-run)"
         env:
           DATABASE_URL: "sqlite:///test.db"
         run: alembic upgrade head

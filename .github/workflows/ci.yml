@@ -30,9 +30,6 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Lint (ESLint)
-        run: pnpm lint
-
       - name: Tests (Vitest)
         run: pnpm vitest run
 

@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Instalar dependencias
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Lint (ESLint)
         run: pnpm lint

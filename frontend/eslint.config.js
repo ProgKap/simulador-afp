@@ -1,8 +1,6 @@
-import nextPlugin from "eslint-config-next";
-
 export default [
   {
-    ignores: [".next", "node_modules", "dist"],
+    ignores: [".next", "node_modules", "dist", "out"],
   },
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
@@ -16,8 +14,8 @@ export default [
       },
     },
     rules: {
-      "react-hooks/exhaustive-deps": "warn",
       "no-unused-vars": "warn",
+      "no-console": "warn",
     },
   },
 ];

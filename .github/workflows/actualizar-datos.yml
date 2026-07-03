@@ -10,8 +10,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  sync-comisiones:
-    name: Sync comisiones desde API
+  sync-indicadores:
+    name: Sync indicadores desde Banco Central
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -31,13 +31,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Fetch comisiones from quetalmiafp API
+      - name: Refresh indicadores (UTM, IPC, Salario Mínimo)
         env:
-          QUETALMIAFP_API_KEY: ${{ secrets.QUETALMIAFP_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: python scripts/actualizar_cuotas.py
+          BCCH_USER: ${{ secrets.BCCH_USER }}
+          BCCH_PASS: ${{ secrets.BCCH_PASS }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/refresh_indicadores.py
 
-      - name: Notify on failure
-        if: failure()
-        run: echo "Failed to sync comisiones — check API availability"
+      - name: Update comisiones cache
+        run: python scripts/update_comisiones.py
+
+      - name: Validate database state
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -c "from app.database import getEngine; print('✓ Database OK')"

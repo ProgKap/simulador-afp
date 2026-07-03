@@ -1,14 +1,18 @@
 # AFP Simulator Chile
 
 [![CI/CD Pipeline](https://github.com/ProgKap/simulador-afp/actions/workflows/ci.yml/badge.svg)](https://github.com/ProgKap/simulador-afp/actions/workflows/ci.yml)
+[![Daily Data Sync](https://github.com/ProgKap/simulador-afp/actions/workflows/actualizar-datos.yml/badge.svg)](https://github.com/ProgKap/simulador-afp/actions/workflows/actualizar-datos.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![Node.js 24](https://img.shields.io/badge/Node.js-24-green)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Simulador open source de pensión AFP para el sistema previsional chileno.  
+Simulador open source de pensión AFP para el sistema previsional chileno.
+
 Calcula tu pensión estimada con **rentabilidades históricas reales**, **Monte Carlo** (n=2.000 simulaciones), comparador de todas las AFPs, contexto educativo y soporte para APV.
 
-Producción-ready con CI/CD automático, tests completos y seguridad configurada.
+**Datos en vivo desde Banco Central de Chile** — UTM, IPC y salario mínimo actualizados diariamente.
+
+Producción-ready con CI/CD automático, tests completos, seguridad configurada y datos sincronizados diariamente.
 
 ## Demo
 
@@ -38,27 +42,55 @@ Producción-ready con CI/CD automático, tests completos y seguridad configurada
 | Caché    | In-memory (Redis-ready)          |
 | DB       | SQLAlchemy + Alembic (opcional)  |
 
+## Indicadores en Vivo
+
+El simulador obtiene **indicadores económicos en vivo desde el Banco Central de Chile** (API SI3), sincronizados diariamente:
+
+### Principales (Impacto directo en pensión)
+
+| Indicador | Serie BCCH | Uso |
+|-----------|-----------|-----|
+| **UTM** | F047.UTM.IND.N.M | Tope anual bonificación APV Tipo A (6 UTM máx) |
+| **UF** | F047.UF.IND.N.M | Indexación de créditos hipotecarios y fondos |
+| **IPC** | F028.LBS.IPC.Z.Z.T.M | Inflación: revalorización de pensión futura |
+| **Salario Mínimo** | — | Contexto laboral, comparación de pensión |
+
+### Económicos (Contexto & Análisis)
+
+| Indicador | Serie BCCH | Uso |
+|-----------|-----------|-----|
+| **TPM** | F046.TASA.CB.N.D | Política monetaria: contexto de rentabilidad |
+| **Tipo de Cambio** | F001.TCO.CLP.N.D | Exposición a dólar (inversiones internacionales) |
+| **Tasa Depósitos** | F080.RD.CLP.D.M | Referencia de rentabilidad conservadora |
+| **Desempleo** | F036.SEG.EMP.N.M | Riesgo laboral: probabilidad de inactividad |
+
+### Actualización
+
+- **Frecuencia**: Diaria 06:00 UTC (03:00 AM Chile)
+- **Fuente**: Banco Central de Chile — API REST SI3
+- **Caché**: 24 horas
+- **Fallback**: Valores respaldo si API indisponible
+
+Ver [`.github/workflows/actualizar-datos.yml`](.github/workflows/actualizar-datos.yml) para configuración.
+
+---
+
 ## CI/CD Pipeline
 
-Validación automática en cada push con workflows paralelos:
+Validación automática en cada push + sincronización diaria de datos:
 
-**Frontend (Next.js)**
-- Install dependencies (pnpm)
-- Run tests (Vitest)
-- Production build validation
+### Validación (Pull Requests)
+- **Frontend**: install → test (Vitest) → build (Next.js)
+- **Backend**: install → lint (Ruff) → test (Pytest) → migrate (Alembic)
 
-**Backend (FastAPI)**
-- Install dependencies (pip)
-- Lint code (Ruff)
-- Run tests (Pytest)
-- Validate database migrations (Alembic dry-run)
+### Sincronización de Datos (Diaria 06:00 UTC)
+- Refrescar indicadores desde Banco Central
+- Actualizar cache de comisiones
+- Validar estado de base de datos
 
-**Seguridad**
-- Variables de entorno correctamente configuradas
-- Sin credenciales hardcodeadas en repositorio
-- Migrations validadas antes de merge
+Todos los workflows son **paralelos** y se ejecutan en ~45 segundos.
 
-Ver [`.github/workflows/ci.yml`](.github/workflows/ci.yml) para detalles de configuración.
+Ver workflows en [`.github/workflows/`](.github/workflows/) para detalles técnicos.
 
 ## Setup local
 
@@ -73,6 +105,7 @@ Ver [`.github/workflows/ci.yml`](.github/workflows/ci.yml) para detalles de conf
 ```bash
 cd backend
 python -m venv venv
+
 # Windows
 venv\Scripts\activate
 # macOS/Linux
@@ -82,11 +115,23 @@ pip install -r requirements.txt
 
 # Copia el .env de ejemplo
 cp ../.env.example .env
-# Edita .env si necesitas integraciones externas (opcional para uso básico)
+```
 
+**Configurar credenciales del Banco Central** (opcional para desarrollo local):
+
+```bash
+# Edita .env
+BCCH_USER=tu_usuario
+BCCH_PASS=tu_password
+```
+
+> Registrate en [si3.bcentral.cl](https://si3.bcentral.cl) para obtener credenciales. Sin estas, el simulador usa valores de respaldo.
+
+```bash
+# Inicia servidor
 uvicorn main:app --reload
 # API disponible en http://localhost:8000
-# Docs en http://localhost:8000/docs
+# Docs interactivos en http://localhost:8000/docs (Swagger)
 ```
 
 ### Frontend
@@ -139,21 +184,56 @@ Ver [`.env.example`](.env.example). Todas son opcionales para uso básico local.
 
 Ver [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Integración Banco Central de Chile
+## Fuentes de Datos
 
-El endpoint `/indicadores` obtiene datos macro directamente desde la [API REST del BCCH](https://si3.bcentral.cl/SieteRestWS/SieteRestWS.ashx):
+### Banco Central de Chile (BCCH) — Sincronización Diaria
 
-| Variable        | Serie BCCH              | Uso en el simulador                         |
-|-----------------|-------------------------|---------------------------------------------|
-| UTM mensual     | `F047.UTM.IND.N.M`      | Límite de bonificación APV Tipo A (6 UTM/año) |
-| IPC mensual     | `F028.LBS.IPC.Z.Z.T.M`  | Contexto inflacionario                      |
-| Salario mínimo  | —                       | Comparación de pensión vs sueldo mínimo     |
+El backend obtiene **7 indicadores en vivo** desde [API SI3 del BCCH](https://si3.bcentral.cl):
 
-**Comportamiento con fallback**: si el API BCCH no está disponible (error de red, cuenta no activada, etc.), el simulador usa valores actualizados hardcodeados y continúa funcionando normalmente. El frontend indica si los datos provienen de BCCH en vivo o del fallback.
+```
+Series SI3 (sincronización 06:00 UTC):
+├─ F047.UTM.IND.N.M        → UTM mensual (CLP)
+├─ F047.UF.IND.N.M         → UF mensual (CLP)
+├─ F028.LBS.IPC.Z.Z.T.M    → IPC mensual (%)
+├─ F046.TASA.CB.N.D        → TPM (% anual)
+├─ F001.TCO.CLP.N.D        → Tipo cambio (CLP/USD)
+├─ F080.RD.CLP.D.M         → Tasa depósitos (%)
+└─ F036.SEG.EMP.N.M        → Tasa desempleo (%)
+```
 
-**Activar cuenta BCCH**: regístrate en [si3.bcentral.cl](https://si3.bcentral.cl) y activa el acceso a servicios web en el perfil de tu cuenta.
+**Fallback automático**: Si BCCH no responde, usa últimos valores conocidos (conservadores, actualizados mensualmente).
 
-**APV Tipo A — corrección técnica**: el tope de 6 UTM es el máximo de *bonificación anual del Estado*, no el máximo de aporte. El aporte máximo para recibir la bonificación completa es 40 UTM/año (~$2,73M). La fórmula correcta es `bonificacion = min(apv_anual × 15%, 6 UTM)`.
+**Registrarse en BCCH**:
+1. Ve a [si3.bcentral.cl](https://si3.bcentral.cl)
+2. Crea una cuenta
+3. Activa "Acceso a Servicios Web" en tu perfil
+4. Configura `BCCH_USER` y `BCCH_PASS` en GitHub Secrets
+
+### Datos Internos (Históricos)
+
+| Dato | Fuente | Actualización | Notas |
+|------|--------|---------------|-------|
+| Rentabilidades históricas | Superintendencia de Pensiones | Anual | 1985–2026, por fondo (A/B/C/D/E) |
+| Comisiones AFP vigentes | Cache local | Manual | 7 AFPs, comisión fija + variable |
+| Tablas mortalidad | RV-2014 CMF | Fijo | Legal, próxima revisión 2029 |
+| PGU (Pensión Garantizada) | Ley 21.419 | Anual | Indexada por BCCH (IPC) |
+| Salario mínimo | Ley 21.625 | Anual | Vigente desde cada julio |
+
+### Notas Técnicas
+
+**APV Tipo A — Bonificación correcta**:
+- Tope de **6 UTM** = bonificación anual del Estado (máximo, no aporte)
+- Máximo aporte elegible: **40 UTM/año** (~$2,73M en 2026)
+- Fórmula: `bonificacion_estado = min(aporte_mensual × 12 × 15%, 6_UTM_anual)`
+
+**Rentabilidad real vs nominal**:
+- Simulador usa **rentabilidades reales históricas** (descontada inflación)
+- Proyección: multiplica por (1 + rentabilidad real) × (1 + inflación esperada)
+- Proyección conservadora: inflación 2.5–3.5% anual
+
+**UF en créditos hipotecarios**:
+- Importante para ahorro-pensión con inversión inmobiliaria
+- Fluctúa según IPC (correlación 1:1)
 
 ## Fuentes de datos
 
